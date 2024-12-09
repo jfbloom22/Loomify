@@ -1,10 +1,11 @@
 import sys
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 import boto3
 import subprocess
 from dotenv import load_dotenv
+import threading
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,21 +16,13 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 DEFAULT_BUCKET = os.getenv("DEFAULT_BUCKET", "public")
 
-# Print AWS credentials and configuration
-print("AWS Configuration:")
-print(f"Endpoint URL: {AWS_ENDPOINT_URL}")
-print(f"Access Key ID: {AWS_ACCESS_KEY_ID}")
-print(f"Secret Access Key: {AWS_SECRET_ACCESS_KEY}")
-print(f"Default Bucket: {DEFAULT_BUCKET}")
-
-
 # Predefined folder list
 folders = ["default", "ai-for-hr-mastermind"]
 
 # Initialize main window
 root = tk.Tk()
 root.title("S3 File Uploader")
-root.geometry("500x350")
+root.geometry("500x400")
 
 file_path = None
 speed_up_video = tk.BooleanVar(value=False)  # Toggle for speeding up video
@@ -83,12 +76,16 @@ def upload_to_s3():
         return
 
     try:
+        # Start the progress bar
+        progress_bar.start()
+
         # Process video if speed-up option is selected
         upload_file = file_path
         if speed_up_video.get():
             messagebox.showinfo("Info", "Processing video for 1.4x speed...")
             upload_file = process_video(file_path)
             if not upload_file:
+                progress_bar.stop()
                 return
 
         # Create S3 client
@@ -103,13 +100,19 @@ def upload_to_s3():
         folder_name = folder_var.get()
         s3_key = f"{folder_name}/{os.path.basename(upload_file)}"
 
-        # Upload file using put_object (avoids multipart upload)
+        # Upload file using put_object
         with open(upload_file, 'rb') as data:
             s3.put_object(Bucket=DEFAULT_BUCKET, Key=s3_key, Body=data)
-        
+
+        progress_bar.stop()
         messagebox.showinfo("Success", f"File uploaded to folder '{folder_name}' successfully.")
     except Exception as e:
+        progress_bar.stop()
         messagebox.showerror("Error", f"Failed to upload file: {e}")
+
+def start_upload_thread():
+    # Run the upload function in a separate thread
+    threading.Thread(target=upload_to_s3).start()
 
 # Label
 label = tk.Label(root, text="Select a file to upload to S3", font=("Helvetica", 12))
@@ -133,8 +136,12 @@ folder_var.set("default")  # Default folder
 folder_menu = tk.OptionMenu(root, folder_var, *folders)
 folder_menu.pack(pady=10)
 
+# Progress bar
+progress_bar = ttk.Progressbar(root, mode='indeterminate', length=300)
+progress_bar.pack(pady=20)
+
 # Upload button
-upload_button = tk.Button(root, text="Upload", command=upload_to_s3)
+upload_button = tk.Button(root, text="Upload", command=start_upload_thread)
 upload_button.pack(pady=10)
 
 # Check for file passed via arguments
