@@ -7,14 +7,11 @@ import subprocess
 from dotenv import load_dotenv
 import threading
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Retrieve credentials and configuration from .env
-AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL")
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-DEFAULT_BUCKET = os.getenv("DEFAULT_BUCKET", "public")
+# Hardcoded configuration
+AWS_ENDPOINT_URL = 'https://s3.jonathanflower.com'
+AWS_ACCESS_KEY_ID = 'jf-public-upload'
+AWS_SECRET_ACCESS_KEY = 'VDK4nym9tny-tma.ygc'
+DEFAULT_BUCKET = 'public'
 
 # Predefined folder list
 folders = ["default", "ai-for-hr-mastermind"]
@@ -24,10 +21,12 @@ root = tk.Tk()
 root.title("S3 File Uploader")
 root.geometry("500x400")
 
+
 file_path = None
 speed_up_video = tk.BooleanVar(value=False)  # Toggle for speeding up video
 
 def set_file_from_args():
+    """Set the file path if a file is dragged onto the app icon."""
     global file_path
     if len(sys.argv) > 1:
         file_path = sys.argv[1]
@@ -38,6 +37,7 @@ def set_file_from_args():
             messagebox.showerror("Error", "Invalid file provided as argument.")
 
 def select_file():
+    """Open a file dialog to select a file."""
     global file_path
     file_path = filedialog.askopenfilename(filetypes=[("Video Files", "*.mp4 *.mov *.avi *.mkv")])
     if file_path:
@@ -46,15 +46,15 @@ def select_file():
         file_label.config(text="No file selected.")
 
 def process_video(input_file):
+    """Process the video to speed it up by 1.4x."""
     try:
-        # Prepare output file path
         filename = os.path.splitext(os.path.basename(input_file))[0]
         extension = os.path.splitext(input_file)[1]
         output_dir = "/Users/jflowerhome/SynologyDrive/Recordings/"
         os.makedirs(output_dir, exist_ok=True)
         output_file = os.path.join(output_dir, f"{filename}_1.4x{extension}")
 
-        # Run ffmpeg command
+        # Run ffmpeg commands
         subprocess.run([
             "/opt/homebrew/bin/ffmpeg", "-y", "-i", input_file,
             "-filter:v", "setpts=PTS/1.4", "-af", "atempo=1.4", "-b:v", "1400k",
@@ -70,7 +70,18 @@ def process_video(input_file):
         messagebox.showerror("Error", f"Video processing failed: {e}")
         return None
 
+def send_notification(title, message):
+    """Send a macOS push notification."""
+    try:
+        subprocess.run([
+            "osascript", "-e",
+            f'display notification "{message}" with title "{title}"'
+        ], check=True)
+    except Exception as e:
+        print(f"Failed to send notification: {e}")
+
 def upload_to_s3():
+    """Upload the selected file to S3."""
     if not file_path:
         messagebox.showerror("Error", "No file selected.")
         return
@@ -82,7 +93,6 @@ def upload_to_s3():
         # Process video if speed-up option is selected
         upload_file = file_path
         if speed_up_video.get():
-            messagebox.showinfo("Info", "Processing video for 1.4x speed...")
             upload_file = process_video(file_path)
             if not upload_file:
                 progress_bar.stop()
@@ -105,13 +115,15 @@ def upload_to_s3():
             s3.put_object(Bucket=DEFAULT_BUCKET, Key=s3_key, Body=data)
 
         progress_bar.stop()
-        messagebox.showinfo("Success", f"File uploaded to folder '{folder_name}' successfully.")
+        send_notification("Upload Complete", f"File uploaded to folder '{folder_name}' successfully.")
+        root.destroy()  # Close the app
     except Exception as e:
         progress_bar.stop()
         messagebox.showerror("Error", f"Failed to upload file: {e}")
+        root.destroy()  # Close the app
 
 def start_upload_thread():
-    # Run the upload function in a separate thread
+    """Run the upload function in a separate thread."""
     threading.Thread(target=upload_to_s3).start()
 
 # Label
