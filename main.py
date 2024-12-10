@@ -116,11 +116,11 @@ def upload_to_s3():
 
         progress_bar.stop()
         send_notification("Upload Complete", f"File uploaded to folder '{folder_name}' successfully.")
-        root.destroy()  # Close the app
+        # root.destroy()  # Close the app
     except Exception as e:
         progress_bar.stop()
         messagebox.showerror("Error", f"Failed to upload file: {e}")
-        root.destroy()  # Close the app
+        # root.destroy()  # Close the app
 
 def start_upload_thread():
     """Run the upload function in a separate thread."""
