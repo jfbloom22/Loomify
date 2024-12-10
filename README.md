@@ -48,3 +48,11 @@ This is what it looks like in Automator.  Notice the app on my desktop.  I can d
 I am using a Synology DSM with MinIO for the S3-compatible storage.  This makes this solution a bit more complex, but it is completely free for me to operate and the uploads are over LAN which makes them very fast.  
 
 If my videos get a lot of traffic, I plan to add a CDN via Cloudflare to the mix.
+
+## Great Video Recording Applications
+
+- [Screenity](https://screenity.io/en/): A powerful screen recording tool with annotation features. *(Free)*
+- [Komodo Decks](https://komododecks.com/): A collaborative video recording platform for teams. *(Paid)*
+- [Veed.io](https://www.veed.io/): An online video editing and recording tool with various features. *(Paid)*
+- [OBS Studio](https://obsproject.com/): A free and open-source software for video recording and live streaming. *(Free)*
+- Quicktime: Built into macOS, Quicktime offers basic video recording and editing capabilities. *(Free)*
