@@ -39,6 +39,21 @@ exe = EXE(
 app = BUNDLE(
     exe,
     name='main.app',
-    icon=None,
-    bundle_identifier=None,
+    icon=None,  # Add path to your .icns file if you have a custom icon
+    bundle_identifier='com.jonathanflower.loomify',
+    info_plist={
+        "CFBundleName": "loomify",
+        "CFBundleDisplayName": "loomify",
+        "CFBundleIdentifier": "com.jonathanflower.loomify",
+        "CFBundleVersion": "1.0",
+        "CFBundleShortVersionString": "1.0",
+        "CFBundleExecutable": "main",
+        "CFBundleDocumentTypes": [
+            {
+                "CFBundleTypeName": "Video File",
+                "CFBundleTypeRole": "Viewer",
+                "LSItemContentTypes": ["public.movie", "public.video"],
+            }
+        ],
+    },
 )

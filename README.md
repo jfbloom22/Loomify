@@ -10,6 +10,6 @@ source venv/bin/activate
 
 pip install pyinstaller
 
-pyinstaller --onefile --windowed main.py
+pyinstaller main.spec
 
 mv dist/main.app ~/Desktop
