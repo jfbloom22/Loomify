@@ -2,7 +2,7 @@
 
 # Configurable variables
 should_speed_up_video=false # Set to false if you don't want to speed up the video
-target_folder="default"    # Options: 'default', 'flower-loom', 'ai-for-hr-mastermind'
+target_folder="ai-for-hr-mastermind"    # Options: 'default', 'flower-loom', 'ai-for-hr-mastermind'
 
 # Validate target folder
 if [[ "$target_folder" != "default" && "$target_folder" != "flower-loom" && "$target_folder" != "ai-for-hr-mastermind" ]]; then
@@ -36,15 +36,26 @@ do
         echo "Skipping video speed-up for: $f"
         output="$f" # Use the original file if not speeding up
     fi
-
+    # Determine the Content-Type based on file extension
+    if [[ "$extension" == "mp4" ]]; then
+        content_type="video/mp4"
+    elif [[ "$extension" == "mov" ]]; then
+    # note: minio will not stream .mov
+        content_type="video/quicktime"
+    else
+        content_type="application/octet-stream"
+    fi
     # Upload to MinIO (S3-compatible bucket) without multipart
-    echo "Uploading $output to s3://$bucket/$target_folder/"
+    echo "Uploading $output to s3://$bucket/$target_folder/ with Content-Type: $content_type"
     /opt/homebrew/bin/aws --profile "$profile" s3 cp "$output" "s3://$bucket/$target_folder/" \
         --endpoint-url "$endpoint_url" \
         --region "$region" \
-        --expected-size "$(stat -f%z "$output")" \
-        --cli-read-timeout 0 \
-        --cli-connect-timeout 0
+        --content-type "$content_type"
+
+    # Build the URL and copy it to the clipboard
+    url="$endpoint_url/$bucket/$target_folder/$(basename "$output" | sed 's/ /%20/g')"
+    echo "Upload complete. URL: $url"
+    echo -n "$url" | pbcopy
 
     # Optionally, delete the temporary file if it was created
     if $should_speed_up_video; then
