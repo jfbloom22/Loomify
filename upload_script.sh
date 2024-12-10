@@ -10,14 +10,17 @@ if [[ "$target_folder" != "default" && "$target_folder" != "flower-loom" && "$ta
     exit 1
 fi
 
-# S3 bucket name
+# S3 bucket and profile
 bucket="public"
+profile="jf-public-upload"
+endpoint_url="https://s3.jonathanflower.com"
+region="us-east-1"
 
 for f in "$@"
 do
     filename=$(basename "$f" .${f##*.})
     extension=${f##*.}
-    output="$f" # Initialize output with the original file
+    output="/tmp/${filename}.$extension"
 
     # Speed up the video if enabled
     if $should_speed_up_video; then
@@ -31,11 +34,17 @@ do
         /opt/homebrew/bin/ffmpeg -i "$f" -filter:v "setpts=PTS/1.4" -af "atempo=1.4" -b:v 1400k -pass 2 "$output"
     else
         echo "Skipping video speed-up for: $f"
+        output="$f" # Use the original file if not speeding up
     fi
 
-    # Upload to S3-compatible bucket
+    # Upload to MinIO (S3-compatible bucket) without multipart
     echo "Uploading $output to s3://$bucket/$target_folder/"
-    aws --profile jf-public-upload s3 cp "$output" "s3://$bucket/$target_folder/"
+    /opt/homebrew/bin/aws --profile "$profile" s3 cp "$output" "s3://$bucket/$target_folder/" \
+        --endpoint-url "$endpoint_url" \
+        --region "$region" \
+        --expected-size "$(stat -f%z "$output")" \
+        --cli-read-timeout 0 \
+        --cli-connect-timeout 0
 
     # Optionally, delete the temporary file if it was created
     if $should_speed_up_video; then
