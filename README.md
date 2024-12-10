@@ -1,12 +1,12 @@
 # Loom Style Video Upload Utility
 
-I love Loom.  I use it all the time to communicate with my team and stakeholders.  However, the price point is a bit high and really the only feature I want is to speed up the video 1.4x.  So, I created a similar tool that I don't have to pay for.  
+I love Loom.  I use it all the time to communicate with my team and stakeholders.  However, the price point is a bit high and really the only feature I want is to speed up the video 1.4x and share a link to the video.  With a little bit of coding, I created a similar tool that I don't have to pay for.  
 
-Drag a video onto the droplet, it will be speed up the video 1.4x (Loom style), uploaded to an S3-compatible storage, and copy the URL to your clipboard for easy sharing. 
+How it works: Drag a video onto the droplet (Loomify app icon), it will speed up the video 1.4x (Loom style), upload it to an S3-compatible storage, and copy the URL to your clipboard for easy sharing. 
 
 ## Who is this for?
 
-It is for people who are comfortable with a very small amount of coding and want to upload videos to an S3-compatible storage that are speed up 1.4x.  
+It is for people who are comfortable with a very small amount of coding and want to share Loom style videos for free.  
 
 ## Features
 
@@ -16,6 +16,10 @@ It is for people who are comfortable with a very small amount of coding and want
 - macOS notifications for upload status
 - URL copying to clipboard after successful upload
 
+## My Workflow
+
+I use [OBS](https://obsproject.com/) to record the video, [Presentify](https://presentifyapp.com/) to annotate the video, [Final Cut Pro](https://www.apple.com/final-cut-pro/) to edit the video, and then drag and drop the video onto the Loomify app icon. It will upload it, speed it up 1.4x, and copy the URL to my clipboard. I then paste the URL into my Slack message or wherever I want to share it.
+
 ## Prerequisites
 
 - macOS
@@ -24,7 +28,7 @@ It is for people who are comfortable with a very small amount of coding and want
 - FFmpeg (`brew install ffmpeg`) - required only for video speed adjustment
 - an S3-compatible storage bucket with two policies: one for public read access and one for private write access
 
-## How to use
+## How to setup
 1. setup your AWS credentials with write access to the bucket
     - `aws configure --profile jf-public-upload`
 2. update the upload_script.sh with if you want it sped up or not, bucket, folder, profile, region, and endpoint_url
@@ -56,3 +60,5 @@ If my videos get a lot of traffic, I plan to add a CDN via Cloudflare to the mix
 - [Veed.io](https://www.veed.io/): An online video editing and recording tool with various features. *(Paid)*
 - [OBS Studio](https://obsproject.com/): A free and open-source software for video recording and live streaming. *(Free)*
 - Quicktime: Built into macOS, Quicktime offers basic video recording and editing capabilities. *(Free)*
+- [Screen Studio](https://screen.studio/): A professional screen recording and editing tool with automatic zooming and smooth animations. *(Paid)*
+- [Neeto Record](https://neeto.com/neetorecord): A screen recording tool with instant sharing and collaboration features. *(Free/Paid)* (This is the best full featured tool with a generous free tier I have found)
