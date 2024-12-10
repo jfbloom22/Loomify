@@ -4,19 +4,25 @@
 atomic_append() {
     local file="$1"
     local content="$2"
-    (
-        flock -x 200
-        echo "$content" >> "$file"
-    ) 200>"$temp_dir/append.lock"
+    local lock_dir="${file}.lock"
+    
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+        sleep 0.1
+    done
+    echo "$content" >> "$file"
+    rmdir "$lock_dir"
 }
 
 # Function for atomic error logging
 atomic_error_log() {
     local message="$1"
-    (
-        flock -x 200
-        echo "$message" >> "$temp_dir/errors.txt"
-    ) 200>"$temp_dir/error.lock"
+    local lock_dir="$temp_dir/errors.txt.lock"
+    
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+        sleep 0.1
+    done
+    echo "$message" >> "$temp_dir/errors.txt"
+    rmdir "$lock_dir"
 }
 
 # Function to display error notification and write to error file
@@ -28,6 +34,16 @@ display_error() {
     return 1
 }
 
+# Function to mark MOV file detected atomically
+mark_mov_detected() {
+    local lock_dir="$temp_dir/mov_detected.lock"
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+        sleep 0.1
+    done
+    touch "$temp_dir/mov_detected"
+    rmdir "$lock_dir"
+}
+
 # Function to check for errors and display final notification
 check_completion() {
     local total_files=$(cat "$temp_dir/total_files.txt")
@@ -36,38 +52,47 @@ check_completion() {
     echo "DEBUG: check_completion called - processed: $processed_count, total: $total_files" >&2
     
     if [ "$processed_count" -eq "$total_files" ]; then
-        # Use flock to ensure only one process handles completion
-        (
-            flock -x 200
-            # Check if notification has already been sent first
-            if [ ! -f "$temp_dir/notification_sent" ]; then
-                echo "DEBUG: All files processed, checking for errors" >&2
-                if [ -f "$temp_dir/errors.txt" ]; then
-                    local error_messages=$(cat "$temp_dir/errors.txt")
-                    osascript -e "display notification \"One or more files failed to upload. Check terminal for details.\" with title \"Error\" subtitle \"Upload Script Error\""
-                    echo "The following errors occurred:" >&2
-                    echo "$error_messages" >&2
-                    rm -rf "$temp_dir"
-                    exit 1
-                else
-                    # Collect URLs and copy to clipboard
-                    if [ -f "$temp_dir/urls.txt" ]; then
-                        local clipboard_content=$(cat "$temp_dir/urls.txt")
-                        if ! echo -n "$clipboard_content" | pbcopy; then
-                            display_error "Failed to copy URLs to clipboard"
-                            rm -rf "$temp_dir"
-                            exit 1
-                        fi
+        local lock_dir="$temp_dir/completion.lock"
+        while ! mkdir "$lock_dir" 2>/dev/null; do
+            sleep 0.1
+        done
+        
+        if [ ! -f "$temp_dir/notification_sent" ]; then
+            echo "DEBUG: All files processed, checking for errors" >&2
+            if [ -f "$temp_dir/errors.txt" ]; then
+                local error_messages=$(cat "$temp_dir/errors.txt")
+                osascript -e "display notification \"One or more files failed to upload. Check terminal for details.\" with title \"Error\" subtitle \"Upload Script Error\""
+                echo "The following errors occurred:" >&2
+                echo "$error_messages" >&2
+                rm -rf "$temp_dir"
+                exit 1
+            else
+                # Collect URLs and copy to clipboard
+                if [ -f "$temp_dir/urls.txt" ]; then
+                    local clipboard_content=$(cat "$temp_dir/urls.txt")
+                    if ! echo -n "$clipboard_content" | pbcopy; then
+                        display_error "Failed to copy URLs to clipboard"
+                        rm -rf "$temp_dir"
+                        exit 1
                     fi
-
-                    local success_count=$(cat "$temp_dir/success_count.txt")
-                    notification_message="Upload complete. $success_count file(s) uploaded successfully."
-                    osascript -e "display notification \"$notification_message\" with title \"Success\""
-                    touch "$temp_dir/notification_sent"
-                    rm -rf "$temp_dir"
                 fi
+
+                local success_count=$(cat "$temp_dir/success_count.txt")
+                notification_message="Upload complete. $success_count file(s) uploaded successfully."
+                osascript -e "display notification \"$notification_message\" with title \"Success\""
+
+                # Show MOV warning if any MOV files were uploaded
+                if [ -f "$temp_dir/mov_detected" ]; then
+                    sleep 1  # Brief pause between notifications
+                    osascript -e "display notification \"One or more MOV files were uploaded. These files will not stream in browser.\" with title \"Warning\""
+                fi
+
+                touch "$temp_dir/notification_sent"
+                rm -rf "$temp_dir"
             fi
-        ) 200>"$temp_dir/completion.lock"
+        fi
+        
+        rmdir "$lock_dir" 2>/dev/null || true
     fi
 }
 
@@ -123,13 +148,17 @@ fi
 # Function to increment counter atomically
 increment_counter() {
     local counter_file="$1"
-    (
-        flock -x 200
-        local current_count=$(cat "$counter_file")
-        local new_count=$((current_count + 1))
-        echo "$new_count" > "$counter_file"
-        echo "$new_count"
-    ) 200>"$temp_dir/increment.lock"
+    local lock_dir="${counter_file}.lock"
+    local new_count
+    
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+        sleep 0.1
+    done
+    local current_count=$(cat "$counter_file")
+    new_count=$((current_count + 1))
+    echo "$new_count" > "$counter_file"
+    rmdir "$lock_dir"
+    echo "$new_count"
 }
 
 process_file() {
@@ -175,17 +204,12 @@ process_file() {
             ;;
         mov)
             content_type="video/quicktime" # note that MOV will not stream
+            mark_mov_detected
             ;;
         *)
             content_type="application/octet-stream"
             ;;
     esac
-
-    # Notify if MOV file is uploaded since it won't stream in browser
-    if [ "$extension" = "mov" ]; then
-        osascript -e "display notification \"Note: MOV files will not stream in browser\" with title \"Warning\""
-        echo "Warning: MOV files will not stream in browser"
-    fi
 
     # Upload to MinIO with error handling
     echo "Uploading $output to s3://$bucket/$target_folder/ with Content-Type: $content_type"
