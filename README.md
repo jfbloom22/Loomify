@@ -22,9 +22,10 @@ It is for people who are comfortable with a very small amount of coding and want
 - Homebrew
 - AWS CLI (`brew install awscli`)
 - FFmpeg (`brew install ffmpeg`) - required only for video speed adjustment
+- an S3-compatible storage bucket with two policies: one for public read access and one for private write access
 
 ## How to use
-1. setup your AWS credentials
+1. setup your AWS credentials with write access to the bucket
     - `aws configure --profile jf-public-upload`
 2. update the upload_script.sh with if you want it sped up or not, bucket, folder, profile, region, and endpoint_url
 3. Open Automator
@@ -41,3 +42,9 @@ Alternatively, you can run the bash script directly: `./upload_script.sh <file_p
 This is what it looks like in Automator.  Notice the app on my desktop.  I can drag files onto it and it will upload them.
 
 ![Automator App](./automator_app.png)
+
+
+## FYI
+I am using a Synology DSM with MinIO for the S3-compatible storage.  This makes this solution a bit more complex, but it is completely free for me to operate and the uploads are over LAN which makes them very fast.  
+
+If my videos get a lot of traffic, I plan to add a CDN via Cloudflare to the mix.
