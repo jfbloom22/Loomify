@@ -1,15 +1,28 @@
-Loomify is a tool that helps create loom style videos and uploads them to an s3 bucket.
-You can upload to AWS S3 or a self hosted s3 bucket such as MinIO.
+# Loom Style Video Upload Utility
 
+A command-line utility for uploading and processing video files to S3-compatible storage, with optional speed adjustment (similar to Loom)
 
-## Getting Started
-source venv/bin/activate
+## Features
 
-`pip install -r requirements.txt`
+- Upload videos to S3-compatible storage (MinIO, AWS S3, etc.)
+- Optional video speed adjustment using FFmpeg
+- Automatic content-type detection
+- macOS notifications for upload status
+- URL copying to clipboard after successful upload
+- Support for multiple target folders
 
+## Prerequisites
 
-pip install pyinstaller
+- macOS
+- Homebrew
+- AWS CLI (`brew install awscli`)
+- FFmpeg (`brew install ffmpeg`) - required only for video speed adjustment
 
-pyinstaller main.spec
+## How to use
+1. run the bash script: `./upload_script.sh <file_path>`
+2. copy the bash script into an Automator Application.  This is prefered because it helps turn the bash script into a MacOs app that you can drag files onto.  
 
-mv dist/main.app ~/Desktop
+## Automator App
+This is what it looks like in Automator.  Notice the app on my desktop.  I can drag files onto it and it will upload them.
+
+![Automator App](./automator_app.png)
