@@ -31,7 +31,7 @@ I use [OBS](https://obsproject.com/) to record the video, [Presentify](https://p
 ## How to setup
 1. setup your AWS credentials with write access to the bucket
     - `aws configure --profile jf-public-upload`
-2. update the upload_script.sh with if you want it sped up or not, bucket, folder, profile, region, and endpoint_url
+2. update `upload_script.sh` with if you want it sped up or not, bucket, folder, profile, region, and endpoint_url
 3. Open Automator
 4. Create a new Application
 5. select the "Run Shell Script" action
@@ -39,6 +39,7 @@ I use [OBS](https://obsproject.com/) to record the video, [Presentify](https://p
 7. save the application
 8. drag a video onto the application icon and it will upload it.
 9. (optionally) create multiple applications for different target folders and settings.
+10. (enable notifications in Sequoia) For notifications to work we need to enable notifications for the Script Editor app.  In order to trigger the request, open and run `trigger - enable - notifications.scpt`
 
 Alternatively, you can run the bash script directly: `./upload_script.sh <file_path>`
 

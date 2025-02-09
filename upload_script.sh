@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configurable variables
-should_speed_up_video=false
+should_speed_up_video=true
 target_folder="ai-for-hr-mastermind" # default, flower-loom, ai-for-hr-mastermind
 
 # S3 configuration
@@ -17,6 +17,23 @@ display_error() {
     echo "Error: $message" >&2
     return 1
 }
+
+# Function to display success notification
+display_success() {
+    local message="$1"
+    osascript -e "display notification \"$message\" with title \"Success\" subtitle \"Upload Script Success\""
+    echo "Success: $message"
+}
+
+# Function to display notification
+display_notification() {
+    local message="$1"
+    osascript -e "display notification \"$message\" with title \"Upload Script\" subtitle \"Upload Script\""
+    echo "Notification: $message"
+}
+
+# notify that the script is starting
+display_notification "Upload script starting"
 
 # Validate input file
 if [ $# -ne 1 ]; then
@@ -112,6 +129,6 @@ fi
 
 # Show success notification
 notification_message="Upload complete. URL copied to clipboard.$mov_warning"
-osascript -e "display notification \"$notification_message\" with title \"Success\""
+display_success "$notification_message"
 
 echo "Upload complete. URL: $url"
