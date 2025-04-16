@@ -2,7 +2,7 @@
 
 # Configurable variables
 should_speed_up_video=true
-target_folder="ai-for-hr-mastermind" # default, flower-loom, ai-for-hr-mastermind
+target_folder="flower-loom" # default, flower-loom, ai-for-hr-mastermind
 
 # S3 configuration
 bucket="public"
@@ -42,7 +42,7 @@ if [ $# -ne 1 ]; then
 fi
 
 # Validate target folder
-if [[ "$target_folder" != "default" && "$target_folder" != "flower-loom" && "$target_folder" != "ai-for-hr-mastermind" ]]; then
+if [[ "$target_folder" != "default" && "$target_folder" != "ai-for-hr-mastermind" && "$target_folder" != "flower-loom" ]]; then
     display_error "Invalid target folder: $target_folder. Must be one of 'default', 'flower-loom', or 'ai-for-hr-mastermind'."
     exit 1
 fi
@@ -83,7 +83,7 @@ if $should_speed_up_video; then
     fi
 
     # Second pass
-    if ! /opt/homebrew/bin/ffmpeg -i "$input_file" -filter:v "setpts=PTS/1.4" -af "atempo=1.4" -b:v 1400k -pass 2 "$output" 2>/dev/null; then
+    if ! /opt/homebrew/bin/ffmpeg -i "$input_file" -filter:v "setpts=PTS/1.4" -af "atempo=1.4" -b:v 1400k -movflags +faststart -pass 2 "$output" 2>/dev/null; then
         display_error "Failed to speed up video (second pass): $filename"
         exit 1
     fi
@@ -107,10 +107,15 @@ esac
 
 # Upload to MinIO
 echo "Uploading $output to s3://$bucket/$target_folder/ with Content-Type: $content_type"
-if ! /opt/homebrew/bin/aws --profile "$profile" s3 cp "$output" "s3://$bucket/$target_folder/" \
+if ! AWS_MAX_ATTEMPTS=1 AWS_RETRY_MODE=standard \
+AWS_DEFAULT_REGION="$region" \
+/opt/homebrew/bin/aws --profile "$profile" s3api put-object \
+    --bucket "$bucket" \
+    --key "$target_folder/$(basename "$output")" \
+    --body "$output" \
     --endpoint-url "$endpoint_url" \
-    --region "$region" \
-    --content-type "$content_type"; then
+    --content-type "$content_type" \
+	--content-disposition "inline"; then
     display_error "Upload failed for: $filename"
     exit 1
 fi
