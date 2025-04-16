@@ -10,29 +10,22 @@ profile="jf-public-upload"
 endpoint_url="https://s3.jonathanflower.com"
 region="us-east-1"
 
-# Function to display error notification
 display_error() {
-    local message="$1"
-    osascript -e "display notification \"$message\" with title \"Error\" subtitle \"Upload Script Error\""
-    echo "Error: $message" >&2
+    osascript -e "display notification \"$1\" with title \"Error\" subtitle \"Upload Script Error\""
+    echo "Error: $1" >&2
     return 1
 }
 
-# Function to display success notification
 display_success() {
-    local message="$1"
-    osascript -e "display notification \"$message\" with title \"Success\" subtitle \"Upload Script Success\""
-    echo "Success: $message"
+    osascript -e "display notification \"$1\" with title \"Success\" subtitle \"Upload Script Success\""
+    echo "Success: $1"
 }
 
-# Function to display notification
 display_notification() {
-    local message="$1"
-    osascript -e "display notification \"$message\" with title \"Upload Script\" subtitle \"Upload Script\""
-    echo "Notification: $message"
+    osascript -e "display notification \"$1\" with title \"Upload Script\" subtitle \"Upload Script\""
+    echo "Notification: $1"
 }
 
-# notify that the script is starting
 display_notification "Upload script starting"
 
 # Validate input file
@@ -43,7 +36,7 @@ fi
 
 # Validate target folder
 if [[ "$target_folder" != "default" && "$target_folder" != "ai-for-hr-mastermind" && "$target_folder" != "flower-loom" ]]; then
-    display_error "Invalid target folder: $target_folder. Must be one of 'default', 'flower-loom', or 'ai-for-hr-mastermind'."
+    display_error "Invalid target folder: $target_folder."
     exit 1
 fi
 
@@ -55,7 +48,7 @@ fi
 
 # Verify ffmpeg is installed if video speed-up is enabled
 if $should_speed_up_video && ! command -v /opt/homebrew/bin/ffmpeg &> /dev/null; then
-    display_error "FFmpeg is not installed but required for video speed-up"
+    display_error "FFmpeg is not installed but required"
     exit 1
 fi
 
@@ -75,34 +68,25 @@ echo "Processing file: $filename"
 # Speed up the video if enabled
 if $should_speed_up_video; then
     echo "Speeding up video: $input_file"
-    
-    # First pass
-    if ! /opt/homebrew/bin/ffmpeg -y -i "$input_file" -filter:v "setpts=PTS/1.4" -af "atempo=1.4" -b:v 1400k -pass 1 -an -f mp4 /dev/null 2>/dev/null; then
-        display_error "Failed to speed up video (first pass): $filename"
-        exit 1
-    fi
 
-    # Second pass
-    if ! /opt/homebrew/bin/ffmpeg -i "$input_file" -filter:v "setpts=PTS/1.4" -af "atempo=1.4" -b:v 1400k -movflags +faststart -pass 2 "$output" 2>/dev/null; then
-        display_error "Failed to speed up video (second pass): $filename"
+    # Re-encode in one pass with Baseline profile and faststart
+    if ! /opt/homebrew/bin/ffmpeg -y -i "$input_file" \
+      -filter:v "setpts=PTS/1.4" -af "atempo=1.4" \
+      -c:v libx264 -profile:v baseline -level 3.0 \
+      -c:a aac -movflags +faststart -preset slow \
+      -b:v 1400k -maxrate 1400k -bufsize 2800k \
+      "$output"; then
+        display_error "FFmpeg encoding failed for: $filename"
         exit 1
     fi
 else
     output="$input_file"
 fi
 
-# Determine the Content-Type
 case "$extension" in
-    mp4)
-        content_type="video/mp4"
-        ;;
-    mov)
-        content_type="video/quicktime"
-        mov_warning=" Note: MOV files will not stream in browser."
-        ;;
-    *)
-        content_type="application/octet-stream"
-        ;;
+    mp4) content_type="video/mp4" ;;
+    mov) content_type="video/quicktime"; mov_warning=" Note: MOV files will not stream in browser." ;;
+    *)   content_type="application/octet-stream" ;;
 esac
 
 # Upload to MinIO
@@ -115,7 +99,7 @@ AWS_DEFAULT_REGION="$region" \
     --body "$output" \
     --endpoint-url "$endpoint_url" \
     --content-type "$content_type" \
-	--content-disposition "inline"; then
+    --content-disposition "inline"; then
     display_error "Upload failed for: $filename"
     exit 1
 fi
