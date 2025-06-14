@@ -2,12 +2,12 @@
 
 # Configurable variables
 should_speed_up_video=false
-target_folder="flower-loom" # default, flower-loom, ai-for-hr-mastermind
+target_folder="ai-for-hr-mastermind" # default, flower-loom, ai-for-hr-mastermind
 
 # S3 configuration
 bucket="public"
 profile="jf-public-upload"
-endpoint_url="https://s3.jonathanflower.com"
+endpoint_url="https://video.aiforhrmastermind.com"
 region="us-east-1"
 
 display_error() {
